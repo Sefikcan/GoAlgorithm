@@ -2,6 +2,11 @@ package main
 
 import "fmt"
 
+// Usage:
+// Ordering of plates in kitchen
+// Web browser
+// Text editor
+
 // define stack node
 type stackNode struct {
 	value int
