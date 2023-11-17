@@ -14,6 +14,7 @@ func checkIfPangram(sentence string) bool {
 		sentenceHash[char]++
 	}
 
+	// check len of sentence equals number of letters in english language
 	if len(sentenceHash) == expectedLetterCount {
 		return true
 	}
