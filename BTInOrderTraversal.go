@@ -2,18 +2,18 @@ package main
 
 import "fmt"
 
-type TreeNode struct {
+type treeNode struct {
 	Val   int
-	Left  *TreeNode
-	Right *TreeNode
+	Left  *treeNode
+	Right *treeNode
 }
 
 // This function helped to inorder navigation using the stack.
 // Firstly perform to apply all left side tree, then apply right side of tree
 // All operation continues until the stack is empty.
-func inOrderTraversal(root *TreeNode) []int {
+func inOrderTraversal(root *treeNode) []int {
 	result := []int{} // result array
-	stack := []*TreeNode{}
+	stack := []*treeNode{}
 
 	current := root // beginning node
 	for current != nil || len(stack) > 0 {
@@ -38,11 +38,11 @@ func inOrderTraversal(root *TreeNode) []int {
 }
 
 func main() {
-	root := &TreeNode{
+	root := &treeNode{
 		Val: 1,
-		Right: &TreeNode{
+		Right: &treeNode{
 			Val: 2,
-			Left: &TreeNode{
+			Left: &treeNode{
 				Val: 3,
 			},
 		},
