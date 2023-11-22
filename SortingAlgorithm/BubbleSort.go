@@ -2,6 +2,11 @@ package main
 
 import "fmt"
 
+/*
+* As the size of array increases, it causes performance problem.
+* Time complexity O(n^2)
+* Space complexity O(n)
+ */
 func main() {
 	numbers := []int{5, 2, 7, 9, 1, 0, 6, 3, 4}
 	names := []string{"Ali", "Veli", "Ayşe", "Fatma"}

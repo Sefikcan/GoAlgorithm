@@ -2,6 +2,10 @@ package main
 
 import "fmt"
 
+/*
+* Time complexity O(n* log(n))
+* Space complexity is O(n)
+ */
 func main() {
 	intArr := []int{2, 3, 4, 1, 5, 6}
 	mergeSort(intArr)
