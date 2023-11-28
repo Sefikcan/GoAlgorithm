@@ -11,27 +11,71 @@ import (
 	"time"
 )
 
-type MongoServer struct {
-	client *mongo.Client
+type CatFact struct {
+	Fact   string `bson:"fact" json:"fact"`
+	Length int    `bson:"length" json:"length"`
 }
 
-func NewMongoServer(c *mongo.Client) *MongoServer {
-	return &MongoServer{
-		client: c,
+type DbStorage interface {
+	GetAll() ([]*CatFact, error)
+	Put(fact *CatFact) error
+}
+
+type MongoStorage struct {
+	client     *mongo.Client
+	database   string
+	collection string
+}
+
+func NewMongoStorage() (*MongoStorage, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		return nil, err
 	}
+
+	return &MongoStorage{
+		client:     client,
+		database:   "catfact",
+		collection: "facts",
+	}, nil
 }
 
-func (s *MongoServer) handleGetAllFacts(w http.ResponseWriter, r *http.Request) {
-	coll := s.client.Database("catfact").Collection("facts")
+func (store *MongoStorage) GetAll() ([]*CatFact, error) {
+	coll := store.client.Database(store.database).Collection(store.collection)
 
 	query := bson.M{}
 	cursor, err := coll.Find(context.TODO(), query)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	results := []bson.M{}
+	results := []*CatFact{}
 	if err = cursor.All(context.TODO(), &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (store *MongoStorage) Put(fact *CatFact) error {
+	coll := store.client.Database(store.database).Collection(store.collection)
+	_, err := coll.InsertOne(context.TODO(), fact)
+	return err
+}
+
+type MongoServer struct {
+	storage DbStorage
+}
+
+func NewMongoServer(d DbStorage) *MongoServer {
+	return &MongoServer{
+		storage: d,
+	}
+}
+
+func (s *MongoServer) handleGetAllFacts(w http.ResponseWriter, r *http.Request) {
+	results, err := s.storage.GetAll()
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -41,31 +85,31 @@ func (s *MongoServer) handleGetAllFacts(w http.ResponseWriter, r *http.Request) 
 }
 
 type CatFactWorker struct {
-	client *mongo.Client
+	storage     DbStorage
+	apiEndpoint string
 }
 
-func NewCatFactWorker(c *mongo.Client) *CatFactWorker {
+func NewCatFactWorker(dbStorage DbStorage, apiEndpoint string) *CatFactWorker {
 	return &CatFactWorker{
-		client: c,
+		storage:     dbStorage,
+		apiEndpoint: apiEndpoint,
 	}
 }
 
 func (cfw *CatFactWorker) start() error {
-	coll := cfw.client.Database("catfact").Collection("facts")
 	ticker := time.NewTicker(2 * time.Second)
 
 	for {
-		resp, err := http.Get("https://catfact.ninja/fact")
+		resp, err := http.Get(cfw.apiEndpoint)
 		if err != nil {
 			return err
 		}
-		var catFact bson.M //map[string]any
+		var catFact CatFact //map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&catFact); err != nil {
 			return err
 		}
 
-		_, err = coll.InsertOne(context.TODO(), catFact)
-		if err != nil {
+		if err := cfw.storage.Put(&catFact); err != nil {
 			return err
 		}
 
@@ -74,15 +118,15 @@ func (cfw *CatFactWorker) start() error {
 }
 
 func main() {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	mongoDbStore, err := NewMongoStorage()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	worker := NewCatFactWorker(client)
+	worker := NewCatFactWorker(mongoDbStore, "https://catfact.ninja/fact")
 	go worker.start()
 
-	server := NewMongoServer(client)
+	server := NewMongoServer(mongoDbStore)
 	http.HandleFunc("/facts", server.handleGetAllFacts)
 
 	http.ListenAndServe(":3000", nil)
