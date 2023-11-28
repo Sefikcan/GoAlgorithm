@@ -52,5 +52,5 @@ func (s *MWServer) broadcast(msg []byte) error {
 
 func main() {
 	s := NewMWServer()
-	s.broadcast([]byte("test"))
+	s.broadcast([]byte("foo"))
 }
