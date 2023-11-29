@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 )
 
 type Player struct {
@@ -9,6 +10,7 @@ type Player struct {
 }
 
 type GameState struct {
+	lock    sync.Mutex
 	players []*Player
 
 	msgch chan any
@@ -34,7 +36,9 @@ func (g *GameState) handleMessage(msg any) {
 }
 
 func (g *GameState) addPlayer(p *Player) {
+	//g.lock.Lock() // fix race condition problem
 	g.players = append(g.players, p)
+	//g.lock.Unlock()
 
 	fmt.Println("adding player:", p.Name)
 }
